@@ -3338,3 +3338,42 @@ func TestDoDADWhenNICEnabled(t *testing.T) {
 		t.Fatalf("got stack.GetMainNICAddress(%d, %d) = (%s, nil), want = (%s, nil)", nicID, header.IPv6ProtocolNumber, got, addr.AddressWithPrefix)
 	}
 }
+
+func TestStackReceiveBufferSizeOption(t *testing.T) {
+	s := stack.New(stack.Options{})
+	defer s.Close()
+
+	testCases := []struct {
+		rs  stack.ReceiveBufferSizeOption
+		err *tcpip.Error
+	}{
+		// Invalid configurations.
+		{stack.ReceiveBufferSizeOption{Min: -1, Default: 5, Max: 10}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 0, Default: 5, Max: 10}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 6, Default: 5, Max: 10}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: 11, Max: 10}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: -1, Max: 10}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: 0, Max: 10}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: 5, Max: -1}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: 5, Max: 3}, tcpip.ErrInvalidOptionValue},
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: 5, Max: 4}, tcpip.ErrInvalidOptionValue},
+
+		// Valid Configurations
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: 5, Max: 6}, nil},
+		{stack.ReceiveBufferSizeOption{Min: 4, Default: 4, Max: 4}, nil},
+		{stack.ReceiveBufferSizeOption{Min: 0, Default: 0, Max: 0}, nil},
+		{stack.ReceiveBufferSizeOption{Min: 0, Default: 1, Max: 1}, nil},
+		{stack.ReceiveBufferSizeOption{Min: 0, Default: 0, Max: 1}, nil},
+	}
+	for _, tc := range testCases {
+		if err := s.SetOption(tc.rs); err != tc.err {
+			t.Fatalf("s.SetOption(%+v) = %v, want: %v", tc.rs, err, tc.err)
+		}
+	}
+}
+
+func TestStackSendBufferSizeOption(t *testing.T) {
+	s := stack.New(stack.Options{})
+	defer s.Close()
+
+}
